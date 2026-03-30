@@ -438,7 +438,10 @@
   .data-menu-lock-pill { display: flex; align-items: center; gap: 5px; font-size: 10px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface2); color: var(--text3); }
   .data-menu-lock-pill.locked { color: var(--accent3); border-color: rgba(106,255,184,0.3); background: rgba(106,255,184,0.06); }
   .data-menu-lock-pill.unlocked { color: var(--accent4); border-color: rgba(255,184,106,0.3); background: rgba(255,184,106,0.06); }
+  .data-menu-lock-pill.b64 { color: var(--accent4); border-color: rgba(255,184,106,0.3); background: rgba(255,184,106,0.08); }
   .data-menu-lock-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  /* HTTPS warning box inside sync setup modal */
+  .https-warning-box { background: rgba(255,106,138,0.08); border: 1px solid rgba(255,106,138,0.3); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 11px; color: var(--accent2); line-height: 1.6; margin-bottom: 14px; }
 
   /* ── Prevent iOS auto-zoom on input focus (needs font-size ≥ 16px) ── */
   @media (max-width: 640px) {
@@ -750,9 +753,17 @@
 <div id="sync-setup-modal" class="modal-backdrop hidden">
   <div class="modal" style="width:520px">
     <div class="modal-title">⟳ Connect GitHub Sync</div>
-    <div class="security-box">
-      🔒 Your token will be <strong>AES-256 encrypted</strong> before being stored. Even if someone reads your localStorage, they cannot use the token without your encryption password.
+
+    <!-- Security status box — text swapped by updateCryptoUI() -->
+    <div id="sc-security-box" class="security-box">
+      🔒 Your token will be AES-256 encrypted before being stored. Even if someone reads your localStorage, they cannot use the token without your encryption password.
     </div>
+
+    <!-- HTTPS warning — only shown when crypto.subtle unavailable -->
+    <div id="sc-https-warning" class="https-warning-box" style="display:none">
+      ⚠ <strong>HTTPS required for full encryption.</strong> This page is running over HTTP or a local file. Your token will be stored with Base64 obfuscation only — not encrypted. Deploy to GitHub Pages (HTTPS) for AES-256 protection. The encryption password fields below are hidden in this mode.
+    </div>
+
     <div class="form-row">
       <label class="form-label">GitHub Username</label>
       <input type="text" id="sc-owner" class="form-input" placeholder="e.g. john-doe">
@@ -771,19 +782,24 @@
       <input type="password" id="sc-token" class="form-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
       <div class="form-hint">Needs Contents: Read and Write permission on your repo only</div>
     </div>
-    <div class="divider"></div>
-    <div class="modal-section-title">🔑 Encryption Password</div>
-    <div class="form-row">
-      <label class="form-label">Password <span style="color:var(--text3);font-size:10px;text-transform:none;font-weight:400">— used to encrypt your token in storage</span></label>
-      <input type="password" id="sc-enc-password" class="form-input" placeholder="Choose a strong password" oninput="updateEncStrength()">
-      <div id="enc-strength-bar" class="enc-strength" style="width:0%;background:var(--border)"></div>
-      <div id="enc-strength-label" class="enc-strength-label"></div>
-      <div class="form-hint" style="margin-top:6px">You will enter this password once per browser session to unlock sync. <strong>Do not lose it</strong> — it cannot be recovered.</div>
+
+    <!-- Password section — hidden when crypto unavailable -->
+    <div id="sc-password-section">
+      <div class="divider"></div>
+      <div class="modal-section-title">🔑 Encryption Password</div>
+      <div class="form-row">
+        <label class="form-label">Password <span style="color:var(--text3);font-size:10px;text-transform:none;font-weight:400">— used to encrypt your token in storage</span></label>
+        <input type="password" id="sc-enc-password" class="form-input" placeholder="Choose a strong password" oninput="updateEncStrength()">
+        <div id="enc-strength-bar" class="enc-strength" style="width:0%;background:var(--border)"></div>
+        <div id="enc-strength-label" class="enc-strength-label"></div>
+        <div class="form-hint" style="margin-top:6px">You will enter this password once per browser session to unlock sync. <strong>Do not lose it</strong> — it cannot be recovered.</div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Confirm Password</label>
+        <input type="password" id="sc-enc-confirm" class="form-input" placeholder="Repeat password">
+      </div>
     </div>
-    <div class="form-row">
-      <label class="form-label">Confirm Password</label>
-      <input type="password" id="sc-enc-confirm" class="form-input" placeholder="Repeat password">
-    </div>
+
     <div id="sc-test-result" style="display:none;margin-top:8px;font-size:11px;padding:8px 12px;border-radius:var(--radius-sm);"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('sync-setup-modal')">Cancel</button>
@@ -1497,13 +1513,14 @@ let _unlockCallback = null;
 
 // ── Lock indicator ──
 function setLockIndicator(state) {
-  // state: 'locked' | 'unlocked' | 'none'
+  // state: 'locked' | 'unlocked' | 'b64' | 'none'
   const el  = document.getElementById('lock-indicator');
   const lbl = document.getElementById('lock-label');
   if (!el) return;
   el.className = 'data-menu-lock-pill ' + state;
   if (state === 'locked')   { lbl.textContent = 'Encrypted'; }
   if (state === 'unlocked') { lbl.textContent = 'Unlocked'; }
+  if (state === 'b64')      { lbl.textContent = 'Base64 (HTTP)'; }
   if (state === 'none')     { lbl.textContent = 'No sync'; }
 }
 
@@ -1550,7 +1567,9 @@ function setSyncDot(state) {
 function initSyncDot() {
   const cfg = getSyncConfig();
   if (!cfg) { setSyncDot('none'); setLockIndicator('none'); return; }
-  setLockIndicator('locked'); // always locked on fresh page load
+  // Show correct lock state: b64 mode vs encrypted mode
+  const mode = cfg.encryptedToken?.mode;
+  setLockIndicator(mode === 'b64' ? 'b64' : 'locked');
   const last = cfg.lastSyncedAt;
   if (!last) { setSyncDot('pending'); return; }
   const mins = (Date.now() - new Date(last).getTime()) / 60000;
@@ -1559,9 +1578,17 @@ function initSyncDot() {
 
 // ═══════════════════════════════════════
 //  WEB CRYPTO — AES-256-GCM ENCRYPTION
+//  with Base64 fallback for HTTP/file://
+//  (iOS Safari blocks crypto.subtle on
+//   non-HTTPS pages — use HTTPS in prod)
 // ═══════════════════════════════════════
 const PBKDF2_ITERATIONS = 200000;
-const SALT_LABEL = 'perfos-v1';
+
+// Detect if AES-256-GCM is available in this context
+function isCryptoAvailable() {
+  try { return !!(window.crypto && window.crypto.subtle && window.isSecureContext); }
+  catch { return false; }
+}
 
 // Derive an AES-GCM CryptoKey from a user password
 async function deriveKey(password, saltBytes) {
@@ -1578,7 +1605,7 @@ async function deriveKey(password, saltBytes) {
   );
 }
 
-// Encrypt plaintext string → base64 JSON blob {iv, salt, data}
+// Encrypt plaintext → { mode:'aes', iv, salt, data }
 async function encryptText(plaintext, password) {
   const enc      = new TextEncoder();
   const salt     = crypto.getRandomValues(new Uint8Array(16));
@@ -1590,13 +1617,14 @@ async function encryptText(plaintext, password) {
     enc.encode(plaintext)
   );
   return {
+    mode: 'aes',
     iv:   Array.from(iv),
     salt: Array.from(salt),
     data: Array.from(new Uint8Array(encrypted))
   };
 }
 
-// Decrypt blob → plaintext string (throws if wrong password)
+// Decrypt AES blob → plaintext (throws on wrong password)
 async function decryptText(blob, password) {
   const dec = new TextDecoder();
   const key = await deriveKey(password, new Uint8Array(blob.salt));
@@ -1606,6 +1634,31 @@ async function decryptText(blob, password) {
     new Uint8Array(blob.data)
   );
   return dec.decode(decrypted);
+}
+
+// ── Base64 fallback (used when crypto.subtle is unavailable) ──
+// NOT encryption — just obfuscation. Clearly labelled in storage.
+function encryptTextFallback(plaintext) {
+  // btoa needs latin1 — use encodeURIComponent to handle unicode
+  return { mode: 'b64', data: btoa(unescape(encodeURIComponent(plaintext))) };
+}
+function decryptTextFallback(blob) {
+  return decodeURIComponent(escape(atob(blob.data)));
+}
+
+// ── Unified store/retrieve — auto-selects AES or Base64 ──
+async function storeToken(plaintext, password) {
+  if (isCryptoAvailable()) {
+    return await encryptText(plaintext, password);
+  }
+  // Fallback: ignore password entirely, just obfuscate
+  return encryptTextFallback(plaintext);
+}
+
+async function retrieveToken(blob, password) {
+  if (!blob) throw new Error('No token stored.');
+  if (blob.mode === 'b64') return decryptTextFallback(blob);
+  return await decryptText(blob, password); // AES path
 }
 
 // ── Password strength meter ──
@@ -1633,6 +1686,29 @@ function updateEncStrength() {
   bar.style.background = lvl.bg;
   lbl.style.color      = lvl.bg;
   lbl.textContent      = lvl.label;
+}
+
+// Show/hide the HTTPS warning + password fields based on crypto availability
+function updateCryptoUI() {
+  const httpsWarn   = document.getElementById('sc-https-warning');
+  const pwSection   = document.getElementById('sc-password-section');
+  const securityBox = document.getElementById('sc-security-box');
+  if (!httpsWarn) return;
+  if (isCryptoAvailable()) {
+    httpsWarn.style.display = 'none';
+    pwSection.style.display = '';
+    securityBox.textContent = '🔒 Your token will be AES-256 encrypted before being stored. Even if someone reads your localStorage, they cannot use the token without your encryption password.';
+    securityBox.style.color = 'var(--accent3)';
+    securityBox.style.borderColor = 'rgba(106,255,184,0.25)';
+    securityBox.style.background  = 'rgba(106,255,184,0.06)';
+  } else {
+    httpsWarn.style.display = '';
+    pwSection.style.display = 'none';
+    securityBox.textContent = '⚠ This page is not served over HTTPS. Your token will be stored with Base64 obfuscation only (not encrypted). For full AES-256 encryption, deploy to GitHub Pages or any HTTPS host.';
+    securityBox.style.color = 'var(--accent4)';
+    securityBox.style.borderColor = 'rgba(255,184,106,0.3)';
+    securityBox.style.background  = 'rgba(255,184,106,0.08)';
+  }
 }
 
 // ═══════════════════════════════════════
@@ -1676,49 +1752,51 @@ async function saveSyncConfig() {
   const formCfg = readSyncForm();
   if (!formCfg) return;
 
-  const password = document.getElementById('sc-enc-password').value;
-  const confirm  = document.getElementById('sc-enc-confirm').value;
-
-  if (!password) { showToast('Encryption password is required.'); return; }
-  if (password.length < 8) { showToast('Password must be at least 8 characters.'); return; }
-  if (password !== confirm) { showToast('Passwords do not match.'); return; }
-
-  // Show encrypting feedback
   const resultEl = document.getElementById('sc-test-result');
   resultEl.style.display    = 'block';
   resultEl.style.background = 'rgba(124,106,255,0.08)';
   resultEl.style.color      = 'var(--accent)';
-  resultEl.textContent      = '🔒 Encrypting token…';
+
+  const usingCrypto = isCryptoAvailable();
+
+  if (usingCrypto) {
+    const password = document.getElementById('sc-enc-password').value;
+    const confirm  = document.getElementById('sc-enc-confirm').value;
+    if (!password) { showToast('Encryption password is required.'); resultEl.style.display='none'; return; }
+    if (password.length < 8) { showToast('Password must be at least 8 characters.'); resultEl.style.display='none'; return; }
+    if (password !== confirm) { showToast('Passwords do not match.'); resultEl.style.display='none'; return; }
+    resultEl.textContent = '🔒 Encrypting token…';
+  } else {
+    resultEl.textContent = '⟳ Saving (Base64 mode — no HTTPS)…';
+  }
 
   try {
-    const encryptedToken = await encryptText(formCfg.token, password);
+    const password = usingCrypto ? document.getElementById('sc-enc-password').value : '';
+    const encryptedToken = await storeToken(formCfg.token, password);
 
-    // Store config WITHOUT the raw token — only the ciphertext
     const cfg = {
       owner:          formCfg.owner,
       repo:           formCfg.repo,
       path:           formCfg.path,
-      encryptedToken, // { iv, salt, data }
+      encryptedToken,
       lastSyncedAt:   null,
       lastSha:        null
     };
     saveSyncConfig_store(cfg);
 
-    // Cache decrypted token in memory for this session
     _sessionToken = formCfg.token;
-    setLockIndicator('unlocked');
-    // Show lock row in menu
+    setLockIndicator(usingCrypto ? 'unlocked' : 'b64');
     const lockRow = document.getElementById('data-menu-lock-row');
     if (lockRow) lockRow.style.display = '';
     updateDataMenuSyncLabel();
 
     closeModal('sync-setup-modal');
-    showToast('Config saved & encrypted. Syncing now…');
+    showToast(usingCrypto ? 'Config saved & encrypted. Syncing now…' : 'Config saved (Base64). Syncing now…');
     await syncPull();
   } catch (e) {
     resultEl.style.background = 'rgba(255,106,138,0.08)';
     resultEl.style.color      = 'var(--accent2)';
-    resultEl.textContent      = '✕ Encryption failed: ' + e.message;
+    resultEl.textContent      = '✕ Save failed: ' + e.message;
   }
 }
 
@@ -1728,17 +1806,24 @@ async function saveSyncConfig() {
 
 // Open unlock modal, then run callback(token) after successful decryption
 function requireToken(callback) {
-  // Already unlocked this session — use cached token
   if (_sessionToken) { callback(_sessionToken); return; }
 
   const cfg = getSyncConfig();
   if (!cfg) { showToast('Sync not configured.'); return; }
 
+  // Base64 mode — no password needed, retrieve directly without unlock modal
+  if (cfg.encryptedToken?.mode === 'b64') {
+    retrieveToken(cfg.encryptedToken, '').then(tok => {
+      _sessionToken = tok;
+      callback(tok);
+    }).catch(e => showToast('Failed to read token: ' + e.message));
+    return;
+  }
+
   _unlockCallback = callback;
   document.getElementById('unlock-password').value = '';
   document.getElementById('unlock-error').style.display = 'none';
   document.getElementById('unlock-modal').classList.remove('hidden');
-  // Focus the password field
   setTimeout(() => document.getElementById('unlock-password').focus(), 100);
 }
 
@@ -1751,18 +1836,16 @@ async function unlockSync() {
   const cfg = getSyncConfig();
   if (!cfg?.encryptedToken) {
     errorEl.style.display = 'block';
-    errorEl.textContent   = 'No encrypted token found. Please reconfigure sync.';
+    errorEl.textContent   = 'No token found. Please reconfigure sync.';
     return;
   }
 
-  // Show decrypting indicator
   const btn = document.querySelector('#unlock-modal .btn-primary');
   if (btn) btn.textContent = '⟳ Decrypting…';
 
   try {
-    const token = await decryptText(cfg.encryptedToken, password);
+    const token = await retrieveToken(cfg.encryptedToken, password);
 
-    // Cache in memory for this session
     _sessionToken = token;
     setLockIndicator('unlocked');
     addSyncLog('Session unlocked — token decrypted', 'info');
@@ -1770,14 +1853,12 @@ async function unlockSync() {
     closeModal('unlock-modal');
     document.getElementById('unlock-password').value = '';
 
-    // Run the pending action
     if (_unlockCallback) {
       const cb = _unlockCallback;
       _unlockCallback = null;
       cb(token);
     }
   } catch {
-    // Wrong password — Web Crypto throws on integrity failure
     errorEl.style.display = 'block';
     errorEl.textContent   = '✕ Incorrect password. Please try again.';
     if (btn) btn.textContent = '🔓 Unlock';
@@ -1833,6 +1914,7 @@ function onSyncClick() {
     document.getElementById('sc-enc-confirm').value  = '';
     updateEncStrength();
     document.getElementById('sc-test-result').style.display = 'none';
+    updateCryptoUI(); // show/hide HTTPS warning + password fields
     document.getElementById('sync-setup-modal').classList.remove('hidden');
   } else {
     openSyncStatusModal();
