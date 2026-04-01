@@ -55,12 +55,12 @@
   .sidebar { width: var(--sidebar-w); background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; transition: width 0.2s ease; }
   .sidebar.collapsed { width: 40px; }
   .sidebar.collapsed .sidebar-list,
-  .sidebar.collapsed .sidebar-title,
-  .sidebar.collapsed .sidebar-add { display: none; }
-  .sidebar-collapse-btn { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 14px; padding: 4px 6px; border-radius: 4px; transition: color 0.15s; line-height: 1; flex-shrink: 0; }
+  .sidebar.collapsed .sidebar-header { display: none; }
+  .sidebar-footer { padding: 8px; border-top: 1px solid var(--border); flex-shrink: 0; }
+  .sidebar-collapse-btn { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 11px; padding: 6px 8px; border-radius: var(--radius); transition: all 0.15s; line-height: 1; width: 100%; text-align: left; font-family: var(--font); }
   .sidebar-collapse-btn:hover { color: var(--accent); background: var(--bg4); }
-  .sidebar.collapsed .sidebar-header { justify-content: center; padding: 12px 4px 8px; }
-  .sidebar.collapsed .sidebar-collapse-btn { font-size: 16px; }
+  .sidebar.collapsed .sidebar-footer { padding: 8px 4px; border-top: none; display: flex; justify-content: center; align-items: flex-end; flex: 1; }
+  .sidebar.collapsed .sidebar-collapse-btn { width: 28px; height: 28px; padding: 0; font-size: 16px; text-align: center; display: flex; align-items: center; justify-content: center; }
   @media (max-width: 600px) {
     :root { --sidebar-w: 180px; }
     .topbar-search { width: 140px; }
@@ -345,9 +345,11 @@
       <div class="sidebar-header">
         <span class="sidebar-title">projects</span>
         <button class="sidebar-add" onclick="openModal('project')" title="New project">+</button>
-        <button class="sidebar-collapse-btn" onclick="toggleSidebar()" id="sidebar-collapse-btn" title="Collapse sidebar">‹</button>
       </div>
       <div class="sidebar-list" id="sidebar-list"></div>
+      <div class="sidebar-footer">
+        <button class="sidebar-collapse-btn" onclick="toggleSidebar()" id="sidebar-collapse-btn" title="Collapse sidebar">‹ collapse</button>
+      </div>
     </div>
     <!-- MAIN CONTENT -->
     <div class="main" id="main-content">
@@ -1414,7 +1416,7 @@ function toggleSidebar() {
   const sb = document.getElementById('sidebar');
   const btn = document.getElementById('sidebar-collapse-btn');
   const collapsed = sb.classList.toggle('collapsed');
-  if(btn) btn.textContent = collapsed ? '›' : '‹';
+  if(btn) btn.innerHTML = collapsed ? '&#8250;' : '&#8249; collapse';
   if(btn) btn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
 }
 
