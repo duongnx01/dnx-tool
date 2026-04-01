@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkNote</title>
+<style>
+  :root {
+    --bg: #0f0f11;
+    --bg2: #16161a;
+    --bg3: #1e1e24;
+    --bg4: #26262e;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e8e8f0;
+    --text2: #9090a8;
+    --text3: #606078;
+    --accent: #7c6fcd;
+    --accent2: #5a4faa;
+    --accent-bg: rgba(124,111,205,0.12);
+    --green: #4ade80;
+    --green-bg: rgba(74,222,128,0.1);
+    --amber: #fbbf24;
+    --amber-bg: rgba(251,191,36,0.1);
+    --red: #f87171;
+    --red-bg: rgba(248,113,113,0.1);
+    --blue: #60a5fa;
+    --blue-bg: rgba(96,165,250,0.1);
+    --teal: #2dd4bf;
+    --teal-bg: rgba(45,212,191,0.1);
+    --pink: #f472b6;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --sidebar-w: 220px;
+    --font: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* TOPBAR */
+  .topbar { height: 48px; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 12px; flex-shrink: 0; z-index: 100; }
+  .topbar-logo { font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 0.08em; }
+  .topbar-logo span { color: var(--text2); font-weight: 400; }
+  .topbar-spacer { flex: 1; }
+  .topbar-search { display: flex; align-items: center; gap: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 5px 10px; width: 220px; }
+  .topbar-search input { background: none; border: none; outline: none; color: var(--text); font-family: var(--font); font-size: 12px; width: 100%; }
+  .topbar-search input::placeholder { color: var(--text3); }
+  .filter-select { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 5px 8px; color: var(--text2); font-family: var(--font); font-size: 12px; outline: none; cursor: pointer; }
+  .topbar-btn { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 5px 12px; color: var(--text2); font-family: var(--font); font-size: 12px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .topbar-btn:hover { border-color: var(--border2); color: var(--text); }
+  .topbar-btn.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+
+  /* LAYOUT */
+  .layout { display: flex; flex: 1; overflow: hidden; }
+
+  /* SIDEBAR */
+  .sidebar { width: var(--sidebar-w); background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+  .sidebar-header { padding: 12px 14px 8px; display: flex; align-items: center; justify-content: space-between; }
+  .sidebar-title { font-size: 10px; letter-spacing: 0.12em; color: var(--text3); text-transform: uppercase; }
+  .sidebar-add { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 4px; border-radius: 4px; transition: color 0.15s; }
+  .sidebar-add:hover { color: var(--accent); }
+  .sidebar-list { flex: 1; overflow-y: auto; padding: 0 8px 8px; }
+  .sidebar-item { padding: 7px 10px; border-radius: var(--radius); cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; transition: background 0.12s; color: var(--text2); font-size: 12px; }
+  .sidebar-item:hover { background: var(--bg3); color: var(--text); }
+  .sidebar-item.active { background: var(--accent-bg); color: var(--accent); }
+  .sidebar-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sidebar-item-score { font-size: 10px; color: var(--text3); }
+  .sidebar-actions { display: none; gap: 4px; }
+  .sidebar-item:hover .sidebar-actions { display: flex; }
+  .icon-btn { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 11px; padding: 2px 4px; border-radius: 4px; font-family: var(--font); }
+  .icon-btn:hover { color: var(--text); background: var(--bg4); }
+
+  /* MAIN */
+  .main { flex: 1; overflow-y: auto; padding: 20px 24px; }
+  .main-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60%; color: var(--text3); gap: 12px; }
+  .main-empty-icon { font-size: 32px; }
+
+  /* PROJECT HEADER */
+  .project-header { margin-bottom: 24px; }
+  .project-title-row { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .project-label { font-size: 10px; letter-spacing: 0.12em; color: var(--text3); text-transform: uppercase; }
+  .project-name { font-size: 18px; font-weight: 700; color: var(--text); }
+  .score-badge { display: inline-flex; align-items: center; gap: 4px; background: var(--accent-bg); border: 1px solid var(--accent); border-radius: 20px; padding: 2px 10px; font-size: 11px; color: var(--accent); }
+  .project-meta { font-size: 11px; color: var(--text3); }
+
+  /* SECTION */
+  .section-block { margin-bottom: 20px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  .section-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; cursor: pointer; user-select: none; border-bottom: 1px solid var(--border); background: var(--bg3); }
+  .section-toggle { color: var(--text3); font-size: 10px; width: 14px; }
+  .section-label { font-size: 10px; letter-spacing: 0.1em; color: var(--text3); text-transform: uppercase; }
+  .section-name { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
+  .section-count { font-size: 10px; color: var(--text3); }
+  .section-body { padding: 8px; }
+
+  /* TASK */
+  .task-block { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px; overflow: hidden; }
+  .task-header { display: flex; align-items: center; gap: 8px; padding: 9px 12px; cursor: pointer; }
+  .task-toggle { color: var(--text3); font-size: 10px; width: 12px; flex-shrink: 0; }
+  .task-name { flex: 1; font-size: 13px; color: var(--text); }
+  .status-badge { font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: 600; letter-spacing: 0.04em; white-space: nowrap; }
+  .status-todo { background: var(--bg4); color: var(--text2); }
+  .status-inprogress { background: var(--amber-bg); color: var(--amber); }
+  .status-done { background: var(--green-bg); color: var(--green); }
+  .task-score { font-size: 11px; color: var(--text3); white-space: nowrap; }
+  .task-dates { font-size: 10px; color: var(--text3); white-space: nowrap; }
+  .task-actions { display: none; gap: 4px; }
+  .task-header:hover .task-actions { display: flex; }
+  .task-body { padding: 8px 12px 10px; border-top: 1px solid var(--border); background: var(--bg2); }
+  .task-desc { font-size: 12px; color: var(--text2); margin-bottom: 10px; padding: 6px 8px; background: var(--bg3); border-radius: var(--radius); }
+
+  /* FLOW */
+  .flows-container { display: flex; flex-direction: column; margin-top: 6px; }
+  .flow-row { display: flex; align-items: flex-start; gap: 10px; min-height: 32px; }
+  .flow-num-col { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 22px; padding-top: 2px; }
+  .flow-num-circle { width: 22px; height: 22px; border-radius: 50%; background: var(--accent-bg); border: 1px solid var(--accent); color: var(--accent); font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1; }
+  .flow-num-line { width: 1px; flex: 1; min-height: 8px; background: var(--border2); margin: 3px 0 3px; }
+  .flow-content { flex: 1; display: flex; align-items: flex-start; gap: 6px; min-width: 0; padding: 2px 6px 8px; border-radius: var(--radius); transition: background 0.12s; }
+  .flow-content:hover { background: var(--bg3); }
+  .flow-actions-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; flex: 1; }
+  .flow-edit-btns { display: flex; gap: 4px; flex-shrink: 0; }
+  .action-chip { display: inline-flex; align-items: center; gap: 0; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; font-size: 11px; }
+  .chip-who { background: var(--accent-bg); color: var(--accent); padding: 3px 7px; border-right: 1px solid var(--border); font-weight: 600; }
+  .chip-action { color: var(--teal); padding: 3px 7px; border-right: 1px solid var(--border); font-weight: 500; }
+  .chip-note { color: var(--text2); padding: 3px 7px; border-right: 1px solid var(--border); font-style: italic; }
+  .chip-input { background: var(--amber-bg); color: var(--amber); padding: 3px 7px; border-right: 1px solid var(--border); }
+  .chip-output { background: var(--blue-bg); color: var(--blue); padding: 3px 7px; }
+  .chip-separator { color: var(--text3); padding: 0 6px; font-size: 14px; align-self: center; }
+  .chip-arrow { color: var(--accent); padding: 0 8px; font-size: 16px; align-self: center; font-weight: 400; line-height: 1; }
+  .task-label { font-size: 10px; font-weight: 700; color: var(--accent); background: var(--accent-bg); border: 1px solid var(--accent); border-radius: 3px; padding: 1px 5px; letter-spacing: 0.04em; flex-shrink: 0; }
+  .section-desc { font-size: 11px; color: var(--text3); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
+  .add-flow-btn { background: none; border: 1px dashed var(--border2); border-radius: var(--radius); padding: 5px 10px; color: var(--text3); cursor: pointer; font-family: var(--font); font-size: 11px; width: 100%; margin-top: 6px; transition: all 0.12s; text-align: left; }
+  .add-flow-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ADD SECTION BTN */
+  .add-section-btn { background: none; border: 1px dashed var(--border2); border-radius: var(--radius-lg); padding: 10px; color: var(--text3); cursor: pointer; font-family: var(--font); font-size: 12px; width: 100%; text-align: left; transition: all 0.12s; margin-bottom: 8px; }
+  .add-section-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .add-task-btn { background: none; border: 1px dashed var(--border); border-radius: var(--radius); padding: 7px 10px; color: var(--text3); cursor: pointer; font-family: var(--font); font-size: 11px; width: 100%; text-align: left; transition: all 0.12s; margin-top: 4px; }
+  .add-task-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg); width: 100%; max-width: 520px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+  .modal-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .modal-close { background: none; border: none; color: var(--text3); font-size: 18px; cursor: pointer; padding: 2px 6px; border-radius: 4px; font-family: var(--font); }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-label { font-size: 11px; color: var(--text3); letter-spacing: 0.06em; }
+  .form-input { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 10px; color: var(--text); font-family: var(--font); font-size: 12px; outline: none; transition: border 0.15s; width: 100%; }
+  .form-input:focus { border-color: var(--accent); }
+  .form-input option { background: var(--bg3); }
+  textarea.form-input { resize: vertical; min-height: 60px; }
+  .form-row { display: flex; gap: 10px; }
+  .form-row .form-group { flex: 1; }
+  .modal-footer { padding: 12px 20px 16px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+  .btn { padding: 7px 16px; border-radius: var(--radius); font-family: var(--font); font-size: 12px; cursor: pointer; transition: all 0.15s; border: 1px solid var(--border); background: var(--bg3); color: var(--text2); }
+  .btn:hover { color: var(--text); border-color: var(--border2); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-danger { background: var(--red-bg); border-color: var(--red); color: var(--red); }
+  .btn-danger:hover { background: var(--red); color: #fff; }
+
+  /* ATTRIBUTES PAGE */
+  .attr-page { padding: 20px 24px; flex: 1; overflow-y: auto; }
+  .attr-section { margin-bottom: 28px; }
+  .attr-section-title { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .attr-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+  .attr-item { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; display: flex; align-items: center; gap: 10px; }
+  .attr-item-name { font-size: 13px; color: var(--text); flex: 1; }
+  .attr-item-detail { font-size: 11px; color: var(--text3); }
+  .attr-add-btn { background: none; border: 1px dashed var(--border2); border-radius: var(--radius); padding: 7px 12px; color: var(--text3); cursor: pointer; font-family: var(--font); font-size: 12px; transition: all 0.12s; text-align: left; }
+  .attr-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* FLOW EDITOR in modal */
+  .action-editor { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; display: flex; flex-direction: column; gap: 8px; position: relative; }
+  .action-editor-header { display: flex; align-items: center; justify-content: space-between; }
+  .action-editor-label { font-size: 10px; color: var(--text3); letter-spacing: 0.08em; }
+  .actions-list { display: flex; flex-direction: column; gap: 8px; }
+  .action-entry { background: var(--bg4); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px; display: flex; flex-direction: column; gap: 6px; position: relative; }
+  .action-entry-header { display: flex; align-items: center; justify-content: space-between; }
+  .action-entry-idx { font-size: 10px; color: var(--text3); }
+  .action-sep { text-align: center; color: var(--text3); font-size: 11px; padding: 2px 0; }
+  .add-action-btn { background: none; border: 1px dashed var(--border2); border-radius: var(--radius); padding: 5px 10px; color: var(--text3); cursor: pointer; font-family: var(--font); font-size: 11px; transition: all 0.12s; text-align: left; width: 100%; }
+  .add-action-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border2); }
+
+  .hidden { display: none !important; }
+  .section-collapsed .section-body { display: none; }
+  .task-collapsed .task-body { display: none; }
+
+  /* chip tag colors */
+  .who-Dev { background: rgba(124,111,205,0.15); color: #a89ef0; }
+  .who-Claude { background: rgba(45,212,191,0.12); color: var(--teal); }
+  .who-ChatGPT { background: rgba(74,222,128,0.12); color: var(--green); }
+  .who-Gemini { background: rgba(96,165,250,0.12); color: var(--blue); }
+  .who-Copilot { background: rgba(251,191,36,0.12); color: var(--amber); }
+  .who-Antigravity { background: rgba(244,114,182,0.12); color: var(--pink); }
+
+  .page { display: none; flex: 1; overflow: hidden; }
+  .page.active { display: flex; flex-direction: column; }
+  .page-main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ANALYTICS */
+  .analytics-page { flex: 1; overflow-y: auto; padding: 24px 28px; display: flex; flex-direction: column; gap: 24px; }
+  .analytics-no-proj { display: flex; align-items: center; justify-content: center; height: 60%; color: var(--text3); font-size: 13px; }
+  .analytics-proj-select { display: flex; align-items: center; gap: 10px; }
+  .analytics-proj-select label { font-size: 11px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; }
+  .analytics-proj-select select { background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius); padding: 6px 10px; color: var(--text); font-family: var(--font); font-size: 13px; outline: none; cursor: pointer; }
+  .an-title { font-size: 18px; font-weight: 700; color: var(--text); }
+  .an-subtitle { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .an-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  .an-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .an-card-val { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1; }
+  .an-card-label { font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; }
+  .an-card.done .an-card-val { color: var(--green); }
+  .an-card.inprog .an-card-val { color: var(--amber); }
+  .an-card.todo .an-card-val { color: var(--text2); }
+  .an-card.score .an-card-val { color: var(--accent); }
+
+  .an-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; }
+  .an-section-title { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 14px; }
+
+  .an-stacked-row { display: flex; flex-direction: column; gap: 8px; }
+  .an-bar-row { display: flex; align-items: center; gap: 10px; }
+  .an-bar-label { font-size: 11px; color: var(--text2); width: 140px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .an-bar-track { flex: 1; height: 14px; background: var(--bg4); border-radius: 7px; overflow: hidden; display: flex; }
+  .an-bar-seg { height: 100%; transition: width 0.4s; }
+  .an-bar-seg.done { background: var(--green); }
+  .an-bar-seg.inprog { background: var(--amber); }
+  .an-bar-seg.todo { background: var(--bg4); border: 1px solid var(--border2); }
+  .an-bar-count { font-size: 10px; color: var(--text3); width: 40px; text-align: right; flex-shrink: 0; }
+
+  .an-score-bars { display: flex; align-items: flex-end; gap: 6px; height: 80px; }
+  .an-score-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+  .an-score-bar { width: 100%; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 2px; transition: height 0.4s; }
+  .an-score-x { font-size: 9px; color: var(--text3); }
+  .an-score-n { font-size: 9px; color: var(--text2); }
+
+  .an-who-bars { display: flex; flex-direction: column; gap: 8px; }
+  .an-hbar { display: flex; align-items: center; gap: 10px; }
+  .an-hbar-label { font-size: 11px; color: var(--text2); width: 100px; flex-shrink: 0; }
+  .an-hbar-track { flex: 1; height: 18px; background: var(--bg4); border-radius: 4px; overflow: hidden; }
+  .an-hbar-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+  .an-hbar-val { font-size: 11px; color: var(--text3); width: 30px; text-align: right; flex-shrink: 0; }
+
+  .an-action-bars { display: flex; flex-direction: column; gap: 8px; }
+
+  .an-gantt { display: flex; flex-direction: column; gap: 6px; overflow-x: auto; }
+  .an-gantt-row { display: flex; align-items: center; gap: 0; min-height: 26px; }
+  .an-gantt-label { font-size: 11px; color: var(--text2); width: 140px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 10px; }
+  .an-gantt-track { flex: 1; height: 20px; background: var(--bg4); border-radius: 4px; position: relative; min-width: 0; }
+  .an-gantt-bar { position: absolute; height: 100%; border-radius: 4px; top: 0; }
+  .an-gantt-axis { display: flex; border-top: 1px solid var(--border); margin-top: 4px; padding-top: 4px; }
+  .an-gantt-axis-label { font-size: 9px; color: var(--text3); flex: 1; text-align: center; }
+  .an-gantt-header { display: flex; margin-bottom: 2px; }
+  .an-gantt-header-spacer { width: 140px; flex-shrink: 0; }
+  .an-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+  .an-legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text3); }
+  .an-legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .an-empty { font-size: 12px; color: var(--text3); padding: 12px 0; text-align: center; }
+
+  /* DROPDOWN MENU */
+  .menu-wrap { position: relative; }
+  .dropdown-menu { position: absolute; right: 0; top: calc(100% + 6px); background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg); min-width: 180px; z-index: 999; padding: 4px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+  .dropdown-item { padding: 8px 12px; border-radius: var(--radius); font-size: 12px; color: var(--text2); cursor: pointer; transition: background 0.12s, color 0.12s; white-space: nowrap; }
+  .dropdown-item:hover { background: var(--accent-bg); color: var(--accent); }
+  .dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+  /* GITHUB SYNC */
+  .sync-badge { display:inline-flex;align-items:center;gap:5px;font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid var(--border);color:var(--text3);cursor:pointer;transition:all 0.15s;white-space:nowrap; }
+  .sync-badge:hover { border-color:var(--border2);color:var(--text2); }
+  .sync-badge.configured { border-color:rgba(74,222,128,0.4);color:var(--green); }
+  .sync-badge.syncing { border-color:var(--amber);color:var(--amber);animation:pulse 1s infinite; }
+  .sync-badge.error { border-color:rgba(248,113,113,0.4);color:var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .sync-dot { width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0; }
+  .gh-status-box { border-radius:var(--radius);padding:10px 12px;font-size:11px;display:flex;flex-direction:column;gap:4px; }
+  .gh-status-ok { background:var(--green-bg);border:1px solid rgba(74,222,128,0.3);color:var(--green); }
+  .gh-status-err { background:var(--red-bg);border:1px solid rgba(248,113,113,0.3);color:var(--red); }
+  .gh-status-info { background:var(--bg3);border:1px solid var(--border);color:var(--text2); }
+  .sync-actions-row { display:flex;gap:8px;flex-wrap:wrap; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-logo">work<span>note</span></div>
+  <div id="topbar-search-area" class="topbar-search" style="display:none">
+    <span style="color:var(--text3);font-size:12px">⌕</span>
+    <input type="text" id="search-input" placeholder="search tasks..." oninput="renderProject()">
+  </div>
+  <div id="topbar-filter-area" style="display:none;align-items:center;gap:8px">
+    <select class="filter-select" id="status-filter" onchange="renderProject()">
+      <option value="">all status</option>
+      <option value="ToDo">ToDo</option>
+      <option value="InProgress">InProgress</option>
+      <option value="Done">Done</option>
+    </select>
+  </div>
+  <div class="topbar-spacer"></div>
+  <button class="topbar-btn" id="btn-main" onclick="showPage('main')" style="display:none">← main</button>
+  <div class="menu-wrap" id="topbar-menu-wrap">
+    <button class="topbar-btn" id="btn-menu" onclick="toggleMenu()" title="options">⋯ menu</button>
+    <div class="dropdown-menu hidden" id="topbar-dropdown">
+      <div class="dropdown-item" onclick="closeMenu();showPage('analytics')">◎ analytics</div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" onclick="closeMenu();openImportExportModal()">↓↑ import / export</div>
+      <div class="dropdown-item" onclick="closeMenu();openGithubSyncModal()">⇅ github sync</div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" onclick="closeMenu();showPage('attrs')">⚙ attributes</div>
+    </div>
+  </div>
+  <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="handleImportFile(event)">
+</div>
+
+<!-- PAGES -->
+<div id="page-main" class="page active">
+  <div class="page-main">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">projects</span>
+        <button class="sidebar-add" onclick="openModal('project')" title="New project">+</button>
+      </div>
+      <div class="sidebar-list" id="sidebar-list"></div>
+    </div>
+    <!-- MAIN CONTENT -->
+    <div class="main" id="main-content">
+      <div class="main-empty">
+        <div class="main-empty-icon">◈</div>
+        <div style="color:var(--text2)">select or create a project</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="page-attrs" class="page">
+  <div class="attr-page" id="attrs-content"></div>
+</div>
+
+<div id="page-analytics" class="page">
+  <div class="analytics-page" id="analytics-content"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modal-overlay" onclick="closeModalOverlay(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">modal</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let state = {
+  projects: [],
+  github: null,
+  whoOptions: ['Dev','Claude','ChatGPT','Antigravity','Gemini','Copilot'],
+  actionOptions: ['Analyze','Generate','Verify','FixBug'],
+  inputOptions: ['Prompt','Error'],
+  activeProjectId: null,
+  expandedSections: {},
+  expandedTasks: {}
+};
+
+function save() { localStorage.setItem('worknote_v2', JSON.stringify(state)); }
+function load() {
+  const d = localStorage.getItem('worknote_v2');
+  if (d) { try { const p = JSON.parse(d); state = {...state,...p}; } catch(e){} }
+  // Ensure built-in options are always present (merge, don't overwrite)
+  const builtinActions = ['Analyze','Generate','Verify','FixBug'];
+  builtinActions.forEach(a => { if(!state.actionOptions.includes(a)) state.actionOptions.unshift(a); });
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+load();
+if (!state.projects) state.projects = [];
+renderSidebar();
+renderProject();
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('btn-main').style.display = p==='main' ? 'none' : '';
+  document.getElementById('topbar-search-area').style.display = p==='main' ? '' : 'none';
+  document.getElementById('topbar-filter-area').style.display = p==='main' ? '' : 'none';
+  document.querySelectorAll('.topbar-btn').forEach(b=>b.classList.remove('active'));
+  if(p==='attrs') { renderAttrs(); document.querySelector('[onclick="showPage(\'attrs\')"]').classList.add('active'); }
+  if(p==='analytics') { renderAnalytics(); }
+}
+document.getElementById('topbar-search-area').style.display = '';
+document.getElementById('topbar-filter-area').style.display = '';
+
+// ─── SIDEBAR ─────────────────────────────────────────────────────────────────
+function renderSidebar() {
+  const el = document.getElementById('sidebar-list');
+  el.innerHTML = '';
+  state.projects.forEach(proj => {
+    const doneTasks = proj.sections.flatMap(s=>s.tasks).filter(t=>t.status==='Done');
+    const avg = doneTasks.length ? (doneTasks.reduce((a,t)=>a+(t.score||0),0)/doneTasks.length).toFixed(1) : '—';
+    const div = document.createElement('div');
+    div.className = 'sidebar-item' + (state.activeProjectId===proj.id?' active':'');
+    div.innerHTML = `
+      <span class="sidebar-item-name" onclick="selectProject('${proj.id}')">${proj.name}</span>
+      <span class="sidebar-item-score">${avg}</span>
+      <span class="sidebar-actions">
+        <button class="icon-btn" onclick="openModal('project','${proj.id}')">✎</button>
+        <button class="icon-btn" onclick="deleteProject('${proj.id}')">✕</button>
+      </span>`;
+    el.appendChild(div);
+  });
+}
+
+function selectProject(id) {
+  state.activeProjectId = id;
+  save();
+  renderSidebar();
+  renderProject();
+}
+
+// ─── MAIN PROJECT VIEW ────────────────────────────────────────────────────────
+function getSearchFilter() { return (document.getElementById('search-input')||{value:''}).value.toLowerCase(); }
+function getStatusFilter() { return (document.getElementById('status-filter')||{value:''}).value; }
+
+function renderProject() {
+  const el = document.getElementById('main-content');
+  const proj = state.projects.find(p=>p.id===state.activeProjectId);
+  if(!proj) { el.innerHTML = '<div class="main-empty"><div class="main-empty-icon">◈</div><div style="color:var(--text2)">select or create a project</div></div>'; return; }
+  const search = getSearchFilter();
+  const statusF = getStatusFilter();
+  const doneTasks = proj.sections.flatMap(s=>s.tasks).filter(t=>t.status==='Done');
+  const avg = doneTasks.length ? (doneTasks.reduce((a,t)=>a+(t.score||0),0)/doneTasks.length).toFixed(1) : '—';
+  let html = `<div class="project-header">
+    <div class="project-label">project</div>
+    <div class="project-title-row">
+      <div class="project-name">${esc(proj.name)}</div>
+      <span class="score-badge">avg ${avg}</span>
+      <button class="icon-btn" onclick="openModal('project','${proj.id}')">✎</button>
+    </div>
+    ${proj.desc?`<div class="project-meta">${esc(proj.desc)}</div>`:''}
+  </div>`;
+
+  proj.sections.forEach(sec => {
+    const tasks = sec.tasks.filter(t=>{
+      const matchSearch = !search || t.name.toLowerCase().includes(search) || (t.desc||'').toLowerCase().includes(search);
+      const matchStatus = !statusF || t.status===statusF;
+      return matchSearch && matchStatus;
+    });
+    const collapsed = state.expandedSections[sec.id]===false;
+    html += `<div class="section-block${collapsed?' section-collapsed':''}" id="sec-${sec.id}">
+      <div class="section-header" onclick="toggleSection('${sec.id}')">
+        <span class="section-toggle">${collapsed?'▶':'▼'}</span>
+        <span class="section-label">section</span>
+        <span class="section-name">${esc(sec.name)}</span>
+        ${sec.desc?`<span class="section-desc">${esc(sec.desc)}</span>`:''}
+        <span class="section-count">${tasks.length}/${sec.tasks.length} tasks</span>
+        <button class="icon-btn" onclick="event.stopPropagation();openModal('section','${proj.id}','${sec.id}')">✎</button>
+        <button class="icon-btn" onclick="event.stopPropagation();deleteSection('${proj.id}','${sec.id}')">✕</button>
+      </div>
+      <div class="section-body">`;
+    tasks.forEach(task => {
+      html += renderTask(proj.id, sec.id, task);
+    });
+    html += `<button class="add-task-btn" onclick="openModal('task','${proj.id}','${sec.id}')">+ add task</button>
+      </div></div>`;
+  });
+  html += `<button class="add-section-btn" onclick="openModal('section','${proj.id}')">+ add section</button>`;
+  el.innerHTML = html;
+}
+
+function renderTask(projId, secId, task) {
+  const collapsed = state.expandedTasks[task.id]!==true;
+  const flows = task.flows || [];
+  const sd = task.status==='Done'?'status-done':task.status==='InProgress'?'status-inprogress':'status-todo';
+  let html = `<div class="task-block${collapsed?' task-collapsed':''}" id="task-${task.id}">
+    <div class="task-header" onclick="toggleTask('${task.id}')">
+      <span class="task-toggle">${collapsed?'▶':'▼'}</span>
+      <span class="task-label">T</span><span class="task-name">${esc(task.name)}</span>
+      <span class="status-badge ${sd}">${task.status||'ToDo'}</span>
+      <span class="task-score">★ ${task.score??'—'}/10</span>
+      ${task.start||task.end?`<span class="task-dates">${fmtTaskRange(task.start,task.end)}</span>`:''}
+      <span class="task-actions">
+        <button class="icon-btn" onclick="event.stopPropagation();openModal('task','${projId}','${secId}','${task.id}')">✎</button>
+        <button class="icon-btn" onclick="event.stopPropagation();deleteTask('${projId}','${secId}','${task.id}')">✕</button>
+      </span>
+    </div>
+    <div class="task-body">
+      ${task.desc?`<div class="task-desc">${esc(task.desc)}</div>`:''}`;
+  if(flows.length>0) {
+    html += `<div class="flows-container">`;
+    flows.forEach((flow,fi) => {
+      const isLast = fi===flows.length-1;
+      html += `<div class="flow-row">
+        <div class="flow-num-col">
+          <span class="flow-num-circle">${fi+1}</span>
+          ${!isLast?'<div class="flow-num-line"></div>':''}
+        </div>
+        <div class="flow-content" onclick="openModal('flow','${projId}','${secId}','${task.id}','${fi}')" title="click to edit flow" style="cursor:pointer">
+          <div class="flow-actions-row">`;
+      (flow.actions||[]).forEach((act,ai) => {
+        if(ai>0) html += `<span class="chip-arrow">&#8594;</span>`;
+        html += renderActionChip(act);
+      });
+      html += `</div>
+          <div class="flow-edit-btns">
+            <button class="icon-btn" onclick="event.stopPropagation();deleteFlow('${projId}','${secId}','${task.id}',${fi})">&#10005;</button>
+          </div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  html += `<button class="add-flow-btn" onclick="openModal('flow','${projId}','${secId}','${task.id}')">+ add flow</button>
+    </div></div>`;
+  return html;
+}
+
+function trunc(s, max) {
+  if(!s) return '';
+  s = String(s);
+  return s.length > max ? s.slice(0, max) + '…' : s;
+}
+function chipText(full, display, cls, prefix) {
+  const t = prefix ? prefix + display : display;
+  return `<span class="${cls}">${esc(t)}</span>`;
+}
+function renderActionChip(act) {
+  const whoClass = 'who-'+(act.who||'Dev').replace(/\s/g,'');
+  let html = `<span class="action-chip">`;
+  html += `<span class="chip-who ${whoClass}">${esc(act.who||'Dev')}</span>`;
+  html += chipText(act.action||'Generate', trunc(act.action||'Generate',15), 'chip-action', '');
+  if(act.input) html += chipText(act.input, trunc(act.input,15), 'chip-input', 'in:');
+  if(act.output) html += chipText(act.output, trunc(act.output,15), 'chip-output', 'out:');
+  if(act.note) html += chipText(act.note, trunc(act.note,15), 'chip-note', '');
+  html += `</span>`;
+  return html;
+}
+
+function toggleSection(id) {
+  state.expandedSections[id] = state.expandedSections[id]!==false ? false : true;
+  save(); renderProject();
+}
+function toggleTask(id) {
+  state.expandedTasks[id] = state.expandedTasks[id]!==true ? true : false;
+  save(); renderProject();
+}
+
+function fmtDate(d) { if(!d) return '—'; return d.slice(0,10); }
+function fmtDateTime(d) {
+  if(!d) return '—';
+  const dt = new Date(d);
+  const pad = n => String(n).padStart(2,'0');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${pad(dt.getHours())}:${pad(dt.getMinutes())} ${months[dt.getMonth()]} ${String(dt.getDate()).padStart(2,'0')}`;
+}
+function fmtTaskRange(start, end) {
+  const pad = n => String(n).padStart(2,'0');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  if(!start && !end) return '—';
+  if(!start) return fmtDateTime(end);
+  if(!end) return fmtDateTime(start);
+  const s = new Date(start), e = new Date(end);
+  const sameDay = s.getFullYear()===e.getFullYear() && s.getMonth()===e.getMonth() && s.getDate()===e.getDate();
+  const sTime = `${pad(s.getHours())}:${pad(s.getMinutes())}`;
+  const eTime = `${pad(e.getHours())}:${pad(e.getMinutes())}`;
+  const sDate = `${months[s.getMonth()]} ${String(s.getDate()).padStart(2,'0')}`;
+  const eDate = `${months[e.getMonth()]} ${String(e.getDate()).padStart(2,'0')}`;
+  return sameDay
+    ? `${sTime}–${eTime} ${sDate}`
+    : `${sTime} ${sDate} – ${eTime} ${eDate}`;
+}
+function esc(s) { if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ─── MODAL SYSTEM ─────────────────────────────────────────────────────────────
+let modalCtx = {};
+
+function openModal(type, ...args) {
+  modalCtx = { type, args };
+  const overlay = document.getElementById('modal-overlay');
+  const title = document.getElementById('modal-title');
+  const body = document.getElementById('modal-body');
+  const footer = document.getElementById('modal-footer');
+  overlay.classList.remove('hidden');
+
+  if(type==='project') buildProjectModal(args[0]);
+  else if(type==='section') buildSectionModal(args[0], args[1]);
+  else if(type==='task') buildTaskModal(args[0], args[1], args[2]);
+  else if(type==='flow') buildFlowModal(args[0], args[1], args[2], args[3]);
+  else if(type==='who') buildWhoModal(args[0]);
+  else if(type==='action-opt') buildActionOptModal(args[0]);
+  else if(type==='input-opt') buildInputOptModal(args[0]);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+  modalCtx = {};
+}
+function closeModalOverlay(e) { if(e.target===document.getElementById('modal-overlay')) closeModal(); }
+
+// PROJECT MODAL
+function buildProjectModal(projId) {
+  const proj = state.projects.find(p=>p.id===projId)||{};
+  document.getElementById('modal-title').textContent = projId ? 'edit project' : 'new project';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="form-group"><label class="form-label">name</label>
+      <input class="form-input" id="f-name" value="${esc(proj.name||'')}" placeholder="Project name"></div>
+    <div class="form-group"><label class="form-label">description</label>
+      <textarea class="form-input" id="f-desc" placeholder="Optional description">${esc(proj.desc||'')}</textarea></div>`;
+  document.getElementById('modal-footer').innerHTML = `
+    ${projId?`<button class="btn btn-danger" onclick="deleteProject('${projId}');closeModal()">delete</button>`:''}
+    <button class="btn" onclick="closeModal()">cancel</button>
+    <button class="btn btn-primary" onclick="saveProject('${projId||''}')">save</button>`;
+}
+function saveProject(id) {
+  const name = document.getElementById('f-name').value.trim();
+  if(!name) return;
+  const desc = document.getElementById('f-desc').value.trim();
+  if(id) {
+    const p = state.projects.find(x=>x.id===id);
+    if(p) { p.name=name; p.desc=desc; }
+  } else {
+    state.projects.push({id:uid(),name,desc,sections:[]});
+  }
+  save(); renderSidebar(); renderProject(); closeModal();
+}
+function deleteProject(id) {
+  if(!confirm('Delete this project?')) return;
+  state.projects = state.projects.filter(p=>p.id!==id);
+  if(state.activeProjectId===id) state.activeProjectId=null;
+  save(); renderSidebar(); renderProject();
+}
+
+// SECTION MODAL
+function buildSectionModal(projId, secId) {
+  const proj = state.projects.find(p=>p.id===projId)||{sections:[]};
+  const sec = secId ? proj.sections.find(s=>s.id===secId)||{} : {};
+  document.getElementById('modal-title').textContent = secId ? 'edit section' : 'new section';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="form-group"><label class="form-label">name</label>
+      <input class="form-input" id="f-name" value="${esc(sec.name||'')}" placeholder="Section name"></div>
+    <div class="form-group"><label class="form-label">description</label>
+      <textarea class="form-input" id="f-sec-desc" placeholder="Optional description">${esc(sec.desc||'')}</textarea></div>`;
+  document.getElementById('modal-footer').innerHTML = `
+    <button class="btn" onclick="closeModal()">cancel</button>
+    <button class="btn btn-primary" onclick="saveSection('${projId}','${secId||''}')">save</button>`;
+}
+function saveSection(projId, secId) {
+  const name = document.getElementById('f-name').value.trim();
+  if(!name) return;
+  const proj = state.projects.find(p=>p.id===projId);
+  if(!proj) return;
+  const secDesc = (document.getElementById('f-sec-desc')||{value:''}).value.trim();
+  if(secId) { const s=proj.sections.find(x=>x.id===secId); if(s) { s.name=name; s.desc=secDesc; } }
+  else proj.sections.push({id:uid(),name,desc:secDesc,tasks:[]});
+  save(); renderProject(); closeModal();
+}
+function deleteSection(projId, secId) {
+  if(!confirm('Delete this section?')) return;
+  const proj = state.projects.find(p=>p.id===projId);
+  if(proj) proj.sections = proj.sections.filter(s=>s.id!==secId);
+  save(); renderProject();
+}
+
+// TASK MODAL
+function buildTaskModal(projId, secId, taskId) {
+  const proj = state.projects.find(p=>p.id===projId)||{sections:[]};
+  const sec = proj.sections.find(s=>s.id===secId)||{tasks:[]};
+  const task = taskId ? sec.tasks.find(t=>t.id===taskId)||{} : {};
+  const _pad = n=>String(n).padStart(2,'0');
+  const _now = new Date(); const _p1h = new Date(Date.now()+3600000);
+  const _fmt = d=>`${d.getFullYear()}-${_pad(d.getMonth()+1)}-${_pad(d.getDate())}T${_pad(d.getHours())}:${_pad(d.getMinutes())}`;
+  const defStart = task.start || _fmt(_now);
+  const defEnd = task.end || _fmt(_p1h);
+  document.getElementById('modal-title').textContent = taskId ? 'edit task' : 'new task';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="form-group"><label class="form-label">name</label>
+      <input class="form-input" id="f-name" value="${esc(task.name||'')}" placeholder="Task name"></div>
+    <div class="form-group"><label class="form-label">description</label>
+      <textarea class="form-input" id="f-desc" placeholder="Optional">${esc(task.desc||'')}</textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">score (0-10)</label>
+        <input class="form-input" id="f-score" type="number" min="0" max="10" value="${task.score??''}"></div>
+      <div class="form-group"><label class="form-label">status</label>
+        <select class="form-input" id="f-status">
+          <option ${task.status==='ToDo'||!task.status?'selected':''}>ToDo</option>
+          <option ${task.status==='InProgress'?'selected':''}>InProgress</option>
+          <option ${task.status==='Done'?'selected':''}>Done</option>
+        </select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">start</label>
+        <input class="form-input" id="f-start" type="datetime-local" value="${defStart}"></div>
+      <div class="form-group"><label class="form-label">end</label>
+        <input class="form-input" id="f-end" type="datetime-local" value="${defEnd}"></div>
+    </div>`;
+  document.getElementById('modal-footer').innerHTML = `
+    ${taskId?`<button class="btn btn-danger" onclick="deleteTask('${projId}','${secId}','${taskId}');closeModal()">delete</button>`:''}
+    <button class="btn" onclick="closeModal()">cancel</button>
+    <button class="btn btn-primary" onclick="saveTask('${projId}','${secId}','${taskId||''}')">save</button>`;
+}
+function saveTask(projId, secId, taskId) {
+  const name = document.getElementById('f-name').value.trim();
+  if(!name) return;
+  const proj = state.projects.find(p=>p.id===projId);
+  const sec = proj&&proj.sections.find(s=>s.id===secId);
+  if(!sec) return;
+  const data = {
+    name, desc: document.getElementById('f-desc').value.trim(),
+    score: document.getElementById('f-score').value!=='' ? Number(document.getElementById('f-score').value) : null,
+    status: document.getElementById('f-status').value,
+    start: document.getElementById('f-start').value,
+    end: document.getElementById('f-end').value
+  };
+  if(taskId) {
+    const t = sec.tasks.find(x=>x.id===taskId);
+    if(t) Object.assign(t, data);
+  } else {
+    sec.tasks.push({id:uid(), flows:[], ...data});
+  }
+  save(); renderProject(); closeModal();
+}
+function deleteTask(projId, secId, taskId) {
+  if(!confirm('Delete this task?')) return;
+  const proj = state.projects.find(p=>p.id===projId);
+  const sec = proj&&proj.sections.find(s=>s.id===secId);
+  if(sec) sec.tasks = sec.tasks.filter(t=>t.id!==taskId);
+  save(); renderProject();
+}
+
+// FLOW MODAL
+let flowActions = [];
+function buildFlowModal(projId, secId, taskId, flowIdx) {
+  const proj = state.projects.find(p=>p.id===projId)||{sections:[]};
+  const sec = proj.sections.find(s=>s.id===secId)||{tasks:[]};
+  const task = sec.tasks.find(t=>t.id===taskId)||{flows:[]};
+  const flow = flowIdx!==undefined&&flowIdx!==null&&flowIdx!=='' ? task.flows[parseInt(flowIdx)] : null;
+  flowActions = flow ? JSON.parse(JSON.stringify(flow.actions||[])) : [{who:'Dev',action:'Generate',note:'',input:'',output:''}];
+  document.getElementById('modal-title').textContent = flow ? 'edit flow' : 'new flow';
+  renderFlowModalBody(projId, secId, taskId, flowIdx);
+  document.getElementById('modal-footer').innerHTML = `
+    <button class="btn" onclick="closeModal()">cancel</button>
+    <button class="btn btn-primary" onclick="saveFlow('${projId}','${secId}','${taskId}','${flowIdx!==undefined&&flowIdx!==null&&flowIdx!==''?flowIdx:''}')">save</button>`;
+}
+function renderFlowModalBody(projId, secId, taskId, flowIdx) {
+  let html = `<div class="action-editor">
+    <div class="action-editor-header"><span class="action-editor-label">actions in this flow</span></div>
+    <div class="actions-list">`;
+  flowActions.forEach((act,i) => {
+    if(i>0) html += `<div style="text-align:center;color:var(--accent);font-size:18px;padding:0 0 2px;line-height:1">&#8595;</div>`;
+    html += buildActionEntry(act, i);
+  });
+  html += `</div>
+    <button class="add-action-btn" onclick="addFlowAction('${projId}','${secId}','${taskId}','${flowIdx!==undefined&&flowIdx!==null&&flowIdx!==''?flowIdx:''}')">+ add action</button>
+  </div>`;
+  document.getElementById('modal-body').innerHTML = html;
+}
+function buildActionEntry(act, i) {
+  const whoOpts = state.whoOptions.map(w=>`<option ${act.who===w?'selected':''}>${w}</option>`).join('');
+  const actOpts = state.actionOptions.map(a=>`<option ${act.action===a?'selected':''}>${a}</option>`).join('');
+  const inOpts = ['','...'].concat(state.inputOptions).map(o=>`<option ${act.input===o?'selected':''}>${o}</option>`).join('');
+  return `<div class="action-entry" id="ae-${i}">
+    <div class="action-entry-header">
+      <span class="action-entry-idx">action ${i+1}</span>
+      ${flowActions.length>1?`<button class="icon-btn" onclick="removeFlowAction(${i})">✕</button>`:''}
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">who</label>
+        <select class="form-input" onchange="updateFlowAction(${i},'who',this.value)">${whoOpts}</select></div>
+      <div class="form-group"><label class="form-label">action</label>
+        <select class="form-input" onchange="updateFlowAction(${i},'action',this.value)">${actOpts}</select></div>
+    </div>
+    <div class="form-group"><label class="form-label">note</label>
+      <input class="form-input" value="${esc(act.note||'')}" onchange="updateFlowAction(${i},'note',this.value)" placeholder="Optional note"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">input</label>
+        <select class="form-input" onchange="updateFlowAction(${i},'input',this.value)">${inOpts}</select></div>
+      <div class="form-group"><label class="form-label">output</label>
+        <input class="form-input" value="${esc(act.output||'')}" onchange="updateFlowAction(${i},'output',this.value)" placeholder="e.g. project_arch.md"></div>
+    </div>
+  </div>`;
+}
+function updateFlowAction(i, key, val) { if(flowActions[i]) flowActions[i][key]=val; }
+function addFlowAction(projId,secId,taskId,flowIdx) {
+  flowActions.push({who:'Dev',action:'Generate',note:'',input:'',output:''});
+  renderFlowModalBody(projId,secId,taskId,flowIdx);
+  document.getElementById('modal-footer').innerHTML = `
+    <button class="btn" onclick="closeModal()">cancel</button>
+    <button class="btn btn-primary" onclick="saveFlow('${projId}','${secId}','${taskId}','${flowIdx}')">save</button>`;
+}
+function removeFlowAction(i) {
+  flowActions.splice(i,1);
+  const ctx = modalCtx.args;
+  renderFlowModalBody(ctx[0],ctx[1],ctx[2],ctx[3]);
+  document.getElementById('modal-footer').innerHTML = `
+    <button class="btn" onclick="closeModal()">cancel</button>
+    <button class="btn btn-primary" onclick="saveFlow('${ctx[0]}','${ctx[1]}','${ctx[2]}','${ctx[3]||''}')">save</button>`;
+}
+function saveFlow(projId, secId, taskId, flowIdx) {
+  const proj = state.projects.find(p=>p.id===projId);
+  const sec = proj&&proj.sections.find(s=>s.id===secId);
+  const task = sec&&sec.tasks.find(t=>t.id===taskId);
+  if(!task) return;
+  if(!task.flows) task.flows=[];
+  const flow = {actions: flowActions.map(a=>({...a}))};
+  if(flowIdx!==''&&flowIdx!==undefined&&flowIdx!==null) task.flows[parseInt(flowIdx)]=flow;
+  else task.flows.push(flow);
+  save(); renderProject(); closeModal();
+}
+function deleteFlow(projId, secId, taskId, fi) {
+  if(!confirm('Delete this flow?')) return;
+  const proj = state.projects.find(p=>p.id===projId);
+  const sec = proj&&proj.sections.find(s=>s.id===secId);
+  const task = sec&&sec.tasks.find(t=>t.id===taskId);
+  if(task) task.flows.splice(fi,1);
+  save(); renderProject();
+}
+
+// ─── ATTRIBUTES PAGE ──────────────────────────────────────────────────────────
+function renderAttrs() {
+  const el = document.getElementById('attrs-content');
+  el.innerHTML = `
+    <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:20px;">attributes</div>
+    <div class="attr-section">
+      <div class="attr-section-title">who options</div>
+      <div class="attr-list">${state.whoOptions.map((w,i)=>`
+        <div class="attr-item">
+          <span class="attr-item-name">${esc(w)}</span>
+          <button class="icon-btn" onclick="openModal('who',${i})">✎</button>
+          <button class="icon-btn" onclick="deleteWho(${i})">✕</button>
+        </div>`).join('')}</div>
+      <button class="attr-add-btn" onclick="openModal('who')">+ add who</button>
+    </div>
+    <div class="attr-section">
+      <div class="attr-section-title">action options</div>
+      <div class="attr-list">${state.actionOptions.map((a,i)=>`
+        <div class="attr-item">
+          <span class="attr-item-name">${esc(a)}</span>
+          <button class="icon-btn" onclick="openModal('action-opt',${i})">✎</button>
+          <button class="icon-btn" onclick="deleteActionOpt(${i})">✕</button>
+        </div>`).join('')}</div>
+      <button class="attr-add-btn" onclick="openModal('action-opt')">+ add action</button>
+    </div>
+    <div class="attr-section">
+      <div class="attr-section-title">input options</div>
+      <div class="attr-list">${state.inputOptions.map((o,i)=>`
+        <div class="attr-item">
+          <span class="attr-item-name">${esc(o)}</span>
+          <button class="icon-btn" onclick="openModal('input-opt',${i})">✎</button>
+          <button class="icon-btn" onclick="deleteInputOpt(${i})">✕</button>
+        </div>`).join('')}</div>
+      <button class="attr-add-btn" onclick="openModal('input-opt')">+ add input</button>
+    </div>`;
+}
+
+function buildWhoModal(idx) {
+  const val = idx!==undefined ? state.whoOptions[idx]||'' : '';
+  document.getElementById('modal-title').textContent = idx!==undefined ? 'edit who' : 'new who';
+  document.getElementById('modal-body').innerHTML = `<div class="form-group"><label class="form-label">name</label>
+    <input class="form-input" id="f-name" value="${esc(val)}" placeholder="e.g. Dev, Claude, Copilot"></div>`;
+  document.getElementById('modal-footer').innerHTML = `
+    <button class="btn" onclick="closeModal()">cancel</button>
+    <button class="btn btn-primary" onclick="saveWho(${idx!==undefined?idx:''})">save</button>`;
+}
+function saveWho(idx) {
+  const v = document.getElementById('f-name').value.trim();
+  if(!v) return;
+  if(idx!==''&&idx!==undefined) state.whoOptions[parseInt(idx)]=v;
+  else state.whoOptions.push(v);
+  save(); renderAttrs(); closeModal();
+}
+function deleteWho(i) { if(state.whoOptions.length>1) { state.whoOptions.splice(i,1); save(); renderAttrs(); } }
+
+function buildActionOptModal(idx) {
+  const val = idx!==undefined ? state.actionOptions[idx]||'' : '';
+  document.getElementById('modal-title').textContent = idx!==undefined ? 'edit action' : 'new action';
+  document.getElementById('modal-body').innerHTML = `<div class="form-group"><label class="form-label">name</label>
+    <input class="form-input" id="f-name" value="${esc(val)}" placeholder="e.g. Generate, Verify, FixBug"></div>`;
+  document.getElementById('modal-footer').innerHTML = `
+    <button class="btn" onclick="closeModal()">cancel</button>
+    <button class="btn btn-primary" onclick="saveActionOpt(${idx!==undefined?idx:''})">save</button>`;
+}
+function saveActionOpt(idx) {
+  const v = document.getElementById('f-name').value.trim();
+  if(!v) return;
+  if(idx!==''&&idx!==undefined) state.actionOptions[parseInt(idx)]=v;
+  else state.actionOptions.push(v);
+  save(); renderAttrs(); closeModal();
+}
+function deleteActionOpt(i) { if(state.actionOptions.length>1) { state.actionOptions.splice(i,1); save(); renderAttrs(); } }
+
+function buildInputOptModal(idx) {
+  const val = idx!==undefined ? state.inputOptions[idx]||'' : '';
+  document.getElementById('modal-title').textContent = idx!==undefined ? 'edit input' : 'new input';
+  document.getElementById('modal-body').innerHTML = `<div class="form-group"><label class="form-label">name</label>
+    <input class="form-input" id="f-name" value="${esc(val)}" placeholder="e.g. Prompt, Error"></div>`;
+  document.getElementById('modal-footer').innerHTML = `
+    <button class="btn" onclick="closeModal()">cancel</button>
+    <button class="btn btn-primary" onclick="saveInputOpt(${idx!==undefined?idx:''})">save</button>`;
+}
+function saveInputOpt(idx) {
+  const v = document.getElementById('f-name').value.trim();
+  if(!v) return;
+  if(idx!==''&&idx!==undefined) state.inputOptions[parseInt(idx)]=v;
+  else state.inputOptions.push(v);
+  save(); renderAttrs(); closeModal();
+}
+function deleteInputOpt(i) { if(state.inputOptions.length>1) { state.inputOptions.splice(i,1); save(); renderAttrs(); } }
+
+// ─── ANALYTICS ───────────────────────────────────────────────────────────────
+function renderAnalytics() {
+  const el = document.getElementById('analytics-content');
+  if(!state.projects.length) {
+    el.innerHTML = '<div class="analytics-no-proj">no projects yet — create one to see analytics</div>';
+    return;
+  }
+  const selId = el.dataset.projId && state.projects.find(p=>p.id===el.dataset.projId)
+    ? el.dataset.projId
+    : (state.activeProjectId || state.projects[0].id);
+  el.dataset.projId = selId;
+  const proj = state.projects.find(p=>p.id===selId);
+  const allTasks = proj.sections.flatMap(s=>s.tasks);
+  const allActions = allTasks.flatMap(t=>(t.flows||[]).flatMap(f=>f.actions||[]));
+
+  const done = allTasks.filter(t=>t.status==='Done');
+  const inprog = allTasks.filter(t=>t.status==='InProgress');
+  const todo = allTasks.filter(t=>!t.status||t.status==='ToDo');
+  const avgScore = done.length ? (done.reduce((a,t)=>a+(t.score||0),0)/done.length).toFixed(1) : '—';
+  const totalFlows = allTasks.reduce((a,t)=>a+(t.flows||[]).length,0);
+
+  // Project selector
+  const projOpts = state.projects.map(p=>`<option value="${p.id}" ${p.id===selId?'selected':''}>${esc(p.name)}</option>`).join('');
+
+  let html = `
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div>
+      <div class="an-title">${esc(proj.name)}</div>
+      <div class="an-subtitle">${allTasks.length} tasks · ${proj.sections.length} sections · ${totalFlows} flows · ${allActions.length} actions</div>
+    </div>
+    <div class="analytics-proj-select">
+      <label>project</label>
+      <select onchange="document.getElementById('analytics-content').dataset.projId=this.value;renderAnalytics();">${projOpts}</select>
+    </div>
+  </div>
+
+  <div class="an-cards">
+    <div class="an-card"><div class="an-card-val">${allTasks.length}</div><div class="an-card-label">total tasks</div></div>
+    <div class="an-card done"><div class="an-card-val">${done.length}</div><div class="an-card-label">done</div></div>
+    <div class="an-card inprog"><div class="an-card-val">${inprog.length}</div><div class="an-card-label">in progress</div></div>
+    <div class="an-card todo"><div class="an-card-val">${todo.length}</div><div class="an-card-label">to do</div></div>
+    <div class="an-card score"><div class="an-card-val">${avgScore}</div><div class="an-card-label">avg score</div></div>
+    <div class="an-card"><div class="an-card-val">${totalFlows}</div><div class="an-card-label">flows</div></div>
+    <div class="an-card"><div class="an-card-val">${allActions.length}</div><div class="an-card-label">actions</div></div>
+  </div>`;
+
+  // ── Section progress (stacked bar) ──
+  html += `<div class="an-section"><div class="an-section-title">section progress</div>`;
+  if(!proj.sections.length) {
+    html += `<div class="an-empty">no sections</div>`;
+  } else {
+    html += `<div class="an-legend">
+      <div class="an-legend-item"><div class="an-legend-dot" style="background:var(--green)"></div>done</div>
+      <div class="an-legend-item"><div class="an-legend-dot" style="background:var(--amber)"></div>in progress</div>
+      <div class="an-legend-item"><div class="an-legend-dot" style="background:var(--bg4);border:1px solid var(--border2)"></div>to do</div>
+    </div><div class="an-stacked-row">`;
+    proj.sections.forEach(sec => {
+      const st = sec.tasks;
+      const total = st.length || 1;
+      const d = st.filter(t=>t.status==='Done').length;
+      const ip = st.filter(t=>t.status==='InProgress').length;
+      const td = st.length - d - ip;
+      const pct = v => (v/total*100).toFixed(1)+'%';
+      html += `<div class="an-bar-row">
+        <div class="an-bar-label" title="${esc(sec.name)}">${esc(sec.name)}</div>
+        <div class="an-bar-track">
+          <div class="an-bar-seg done" style="width:${pct(d)}"></div>
+          <div class="an-bar-seg inprog" style="width:${pct(ip)}"></div>
+          <div class="an-bar-seg todo" style="width:${pct(td)}"></div>
+        </div>
+        <div class="an-bar-count">${d}/${st.length}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  // ── Score distribution ──
+  html += `<div class="an-section"><div class="an-section-title">score distribution (done tasks)</div>`;
+  if(!done.length) {
+    html += `<div class="an-empty">no done tasks with scores yet</div>`;
+  } else {
+    const buckets = Array(11).fill(0);
+    done.forEach(t=>{ if(t.score!=null) buckets[Math.min(10,Math.max(0,Math.round(t.score)))]++; });
+    const maxB = Math.max(...buckets, 1);
+    html += `<div class="an-score-bars">`;
+    buckets.forEach((cnt,i)=>{
+      const h = Math.round((cnt/maxB)*72);
+      html += `<div class="an-score-col">
+        <div class="an-score-n">${cnt||''}</div>
+        <div class="an-score-bar" style="height:${h}px;opacity:${0.4+0.6*(i/10)}"></div>
+        <div class="an-score-x">${i}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  // ── Who workload ──
+  html += `<div class="an-section"><div class="an-section-title">who workload (actions)</div>`;
+  if(!allActions.length) {
+    html += `<div class="an-empty">no actions yet</div>`;
+  } else {
+    const whoMap = {};
+    allActions.forEach(a=>{ const w=a.who||'Dev'; whoMap[w]=(whoMap[w]||0)+1; });
+    const whoEntries = Object.entries(whoMap).sort((a,b)=>b[1]-a[1]);
+    const maxW = whoEntries[0][1];
+    const whoColors = {Dev:'var(--accent)',Claude:'var(--teal)',ChatGPT:'var(--green)',Gemini:'var(--blue)',Copilot:'var(--amber)',Antigravity:'var(--pink)'};
+    html += `<div class="an-who-bars">`;
+    whoEntries.forEach(([who,cnt])=>{
+      const col = whoColors[who] || 'var(--text2)';
+      html += `<div class="an-hbar">
+        <div class="an-hbar-label">${esc(who)}</div>
+        <div class="an-hbar-track"><div class="an-hbar-fill" style="width:${(cnt/maxW*100).toFixed(1)}%;background:${col}"></div></div>
+        <div class="an-hbar-val">${cnt}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  // ── Action type breakdown ──
+  html += `<div class="an-section"><div class="an-section-title">action type breakdown</div>`;
+  if(!allActions.length) {
+    html += `<div class="an-empty">no actions yet</div>`;
+  } else {
+    const actMap = {};
+    allActions.forEach(a=>{ const k=a.action||'Generate'; actMap[k]=(actMap[k]||0)+1; });
+    const actEntries = Object.entries(actMap).sort((a,b)=>b[1]-a[1]);
+    const maxA = actEntries[0][1];
+    const actColors = ['var(--teal)','var(--accent)','var(--amber)','var(--green)','var(--blue)','var(--pink)','var(--red)'];
+    html += `<div class="an-action-bars">`;
+    actEntries.forEach(([act,cnt],i)=>{
+      html += `<div class="an-hbar">
+        <div class="an-hbar-label">${esc(act)}</div>
+        <div class="an-hbar-track"><div class="an-hbar-fill" style="width:${(cnt/maxA*100).toFixed(1)}%;background:${actColors[i%actColors.length]}"></div></div>
+        <div class="an-hbar-val">${cnt}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  // ── Timeline (Gantt) ──
+  html += `<div class="an-section"><div class="an-section-title">task timeline</div>`;
+  const timedTasks = allTasks.filter(t=>t.start&&t.end);
+  if(!timedTasks.length) {
+    html += `<div class="an-empty">no tasks with start &amp; end dates yet</div>`;
+  } else {
+    const times = timedTasks.flatMap(t=>[new Date(t.start).getTime(), new Date(t.end).getTime()]).filter(Boolean);
+    const minT = Math.min(...times);
+    const maxT = Math.max(...times);
+    const span = maxT - minT || 1;
+    const fmtTick = ts => { const d=new Date(ts); return `${d.getMonth()+1}/${d.getDate()}`; };
+    const statusCol = s => s==='Done'?'var(--green)':s==='InProgress'?'var(--amber)':'var(--bg4)';
+    const statusBorder = s => s==='Done'?'none':s==='InProgress'?'none':'1px solid var(--border2)';
+    html += `<div class="an-legend" style="margin-bottom:6px">
+      <div class="an-legend-item"><div class="an-legend-dot" style="background:var(--green)"></div>done</div>
+      <div class="an-legend-item"><div class="an-legend-dot" style="background:var(--amber)"></div>in progress</div>
+      <div class="an-legend-item"><div class="an-legend-dot" style="background:var(--bg4);border:1px solid var(--border2)"></div>to do</div>
+    </div>`;
+    html += `<div class="an-gantt">`;
+    timedTasks.forEach(task=>{
+      const s = new Date(task.start).getTime();
+      const e = new Date(task.end).getTime();
+      const left = ((s-minT)/span*100).toFixed(2)+'%';
+      const width = Math.max(((e-s)/span*100),1).toFixed(2)+'%';
+      const col = statusCol(task.status);
+      const bord = statusBorder(task.status);
+      html += `<div class="an-gantt-row">
+        <div class="an-gantt-label" title="${esc(task.name)}">${esc(task.name)}</div>
+        <div class="an-gantt-track">
+          <div class="an-gantt-bar" style="left:${left};width:${width};background:${col};border:${bord}" title="${task.start?.slice(0,10)} → ${task.end?.slice(0,10)}"></div>
+        </div>
+      </div>`;
+    });
+    // axis ticks
+    const ticks = 5;
+    html += `<div class="an-gantt-axis">`;
+    for(let i=0;i<=ticks;i++) html += `<div class="an-gantt-axis-label">${fmtTick(minT+span*(i/ticks))}</div>`;
+    html += `</div></div>`;
+  }
+  html += `</div>`;
+
+  el.innerHTML = html;
+}
+
+
+
+// ─── MENU ────────────────────────────────────────────────────────────────────
+function toggleMenu() {
+  const d = document.getElementById('topbar-dropdown');
+  d.classList.toggle('hidden');
+}
+function closeMenu() {
+  document.getElementById('topbar-dropdown').classList.add('hidden');
+}
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('topbar-menu-wrap');
+  if(wrap && !wrap.contains(e.target)) closeMenu();
+});
+
+// ─── IMPORT / EXPORT ────────────────────────────────────────────────────────
+const ALL_PROJECTS_FILENAME = 'all_projects_worknote.json';
+
+function openImportExportModal() {
+  const projList = state.projects.map(p=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:var(--radius);background:var(--bg4)">
+      <span style="font-size:11px;color:var(--accent)">◈</span>
+      <span style="font-size:12px;color:var(--text);flex:1">${esc(p.name)}</span>
+      <span style="font-size:10px;color:var(--text3)">${p.sections.length} sections · ${p.sections.flatMap(s=>s.tasks).length} tasks</span>
+    </div>`).join('');
+  document.getElementById('modal-title').textContent = 'import / export';
+  document.getElementById('modal-body').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:11px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase">export all projects</div>
+        <div style="font-size:12px;color:var(--text2)">exports all projects into a single <code style="color:var(--teal);background:var(--bg4);padding:1px 5px;border-radius:3px">${ALL_PROJECTS_FILENAME}</code> file</div>
+        <div style="display:flex;flex-direction:column;gap:4px;max-height:150px;overflow-y:auto">
+          ${state.projects.length ? projList : '<div style="font-size:12px;color:var(--text3);padding:4px">no projects yet</div>'}
+        </div>
+        <button class="btn btn-primary" onclick="exportAllProjects()" style="align-self:flex-start">↓ export ${ALL_PROJECTS_FILENAME}</button>
+        <div id="export-status" style="font-size:11px"></div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:11px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase">import</div>
+        <div style="font-size:12px;color:var(--text2)">import an <code style="color:var(--teal);background:var(--bg4);padding:1px 5px;border-radius:3px">${ALL_PROJECTS_FILENAME}</code> file — replaces all current projects</div>
+        <button class="btn" onclick="document.getElementById('import-file-input').click()" style="align-self:flex-start">↑ choose file</button>
+        <div id="import-status" style="font-size:11px"></div>
+      </div>
+    </div>`;
+  document.getElementById('modal-footer').innerHTML = `<button class="btn" onclick="closeModal()">close</button>`;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function exportAllProjects() {
+  const payload = { projects: state.projects, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = ALL_PROJECTS_FILENAME; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  const st = document.getElementById('export-status');
+  if(st) st.innerHTML = `<span style="color:var(--green)">✓ exported ${state.projects.length} projects</span>`;
+}
+
+function handleImportFile(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      // support both {projects:[...]} bundle and legacy single-project format
+      let projects;
+      if(Array.isArray(data.projects)) {
+        projects = data.projects;
+      } else if(data.name && Array.isArray(data.sections)) {
+        projects = [data]; // legacy single project file
+      } else {
+        throw new Error('unrecognised format — expected all_projects_worknote.json');
+      }
+      const reassign = proj => {
+        proj.id = uid();
+        (proj.sections||[]).forEach(sec => {
+          sec.id = uid();
+          (sec.tasks||[]).forEach(task => {
+            task.id = uid();
+            (task.flows||[]).forEach(flow => { if(!flow.actions) flow.actions=[]; });
+          });
+        });
+        return proj;
+      };
+      if(!confirm(`This will replace all ${state.projects.length} current projects with ${projects.length} imported projects. Continue?`)) return;
+      state.projects = projects.map(reassign);
+      state.activeProjectId = state.projects[0]?.id || null;
+      save(); renderSidebar(); renderProject();
+      const st = document.getElementById('import-status');
+      if(st) st.innerHTML = `<span style="color:var(--green)">✓ imported ${projects.length} project${projects.length>1?'s':''}</span>`;
+    } catch(err) {
+      const st = document.getElementById('import-status');
+      if(st) st.innerHTML = `<span style="color:var(--red)">✕ ${esc(err.message)}</span>`;
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+
+// ─── GITHUB SYNC (global — all_projects_worknote.json) ───────────────────────
+// Global github config stored in state.github (not per-project)
+let _sessionPwd = null;
+
+function openGithubSyncModal() {
+  const cfg = state.github || {};
+  const isConfigured = !!(cfg.repo && cfg.encToken);
+  document.getElementById('modal-title').textContent = '⇅ github sync';
+  document.getElementById('modal-body').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:12px;color:var(--text2)">syncs all projects as a single <code style="color:var(--teal);background:var(--bg4);padding:1px 5px;border-radius:3px">all_projects_worknote.json</code> file</div>
+      <div class="form-group"><label class="form-label">repository <span style="color:var(--text3)">(owner/repo)</span></label>
+        <input class="form-input" id="gh-repo" value="${esc(cfg.repo||'')}" placeholder="e.g. username/my-notes"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">branch</label>
+          <input class="form-input" id="gh-branch" value="${esc(cfg.branch||'main')}" placeholder="main"></div>
+        <div class="form-group"><label class="form-label">file path</label>
+          <input class="form-input" id="gh-path" value="${esc(cfg.path||'all_projects_worknote.json')}" placeholder="all_projects_worknote.json"></div>
+      </div>
+      <div class="form-group"><label class="form-label">github token <span style="color:var(--text3)">(encrypted with your password)</span></label>
+        <input class="form-input" id="gh-token" type="password" placeholder="${cfg.encToken ? '● stored — enter new to replace' : 'ghp_...'}" autocomplete="off"></div>
+      <div class="form-group"><label class="form-label">encryption password <span style="color:var(--text3)">(never stored)</span></label>
+        <input class="form-input" id="gh-pwd" type="password" placeholder="your secret password" autocomplete="off"></div>
+      <div id="gh-status"></div>
+      <div class="sync-actions-row">
+        <button class="btn btn-primary" onclick="ghSaveConfig()">save config</button>
+        ${isConfigured ? `
+        <button class="btn" onclick="ghPush()">↑ push all projects</button>
+        <button class="btn" onclick="ghPull()">↓ pull all projects</button>` : ''}
+      </div>
+      ${isConfigured ? `<div style="font-size:10px;color:var(--text3);margin-top:4px">connected: ${esc(cfg.repo)} / ${esc(cfg.path||'all_projects_worknote.json')}</div>` : ''}
+    </div>`;
+  document.getElementById('modal-footer').innerHTML = `
+    ${isConfigured ? `<button class="btn btn-danger" style="margin-right:auto" onclick="ghDisconnect()">disconnect</button>` : ''}
+    <button class="btn" onclick="closeModal()">close</button>`;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+// ── Crypto helpers ──────────────────────────────────────────────────────────
+async function deriveKey(password, salt) {
+  const enc = new TextEncoder();
+  const km = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:200000,hash:'SHA-256'}, km, {name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
+}
+async function encryptToken(token, password) {
+  const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await deriveKey(password,salt);
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(token));
+  const buf=new Uint8Array(16+12+ct.byteLength);
+  buf.set(salt,0);buf.set(iv,16);buf.set(new Uint8Array(ct),28);
+  return btoa(String.fromCharCode(...buf));
+}
+async function decryptToken(encToken, password) {
+  const buf=Uint8Array.from(atob(encToken),c=>c.charCodeAt(0));
+  const key=await deriveKey(password,buf.slice(0,16));
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:buf.slice(16,28)},key,buf.slice(28));
+  return new TextDecoder().decode(pt);
+}
+
+// ── Config save ─────────────────────────────────────────────────────────────
+async function ghSaveConfig() {
+  const repo=document.getElementById('gh-repo').value.trim();
+  const branch=document.getElementById('gh-branch').value.trim()||'main';
+  const path=document.getElementById('gh-path').value.trim()||'all_projects_worknote.json';
+  const token=document.getElementById('gh-token').value.trim();
+  const pwd=document.getElementById('gh-pwd').value;
+  if(!repo){ghSetStatus('error','repository is required');return;}
+  if(!pwd){ghSetStatus('error','encryption password is required');return;}
+  let encToken=state.github?.encToken||'';
+  if(token){
+    try{encToken=await encryptToken(token,pwd);}
+    catch(e){ghSetStatus('error','encryption failed: '+e.message);return;}
+  } else if(!encToken){ghSetStatus('error','a github token is required for first setup');return;}
+  _sessionPwd=pwd;
+  state.github={repo,branch,path,encToken};
+  save();
+  ghSetStatus('ok','config saved — token encrypted with your password');
+  setTimeout(()=>openGithubSyncModal(),900);
+}
+
+// ── Push all projects ───────────────────────────────────────────────────────
+async function ghPush() {
+  const cfg=state.github;
+  if(!cfg?.encToken)return;
+  const pwd=await ghGetPassword();
+  if(!pwd)return;
+  ghSetStatus('syncing','pushing all projects...');
+  try {
+    const token=await decryptToken(cfg.encToken,pwd);
+    const {repo,branch,path}=cfg;
+    const payload={projects:state.projects,exportedAt:new Date().toISOString()};
+    const sha=await ghGetFileSha(token,repo,branch,path);
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2))));
+    const body={message:'worknote sync: all projects',content,branch};
+    if(sha)body.sha=sha;
+    const res=await fetch(`https://api.github.com/repos/${repo}/contents/${path}`,{
+      method:'PUT',
+      headers:{'Authorization':'token '+token,'Content-Type':'application/json','Accept':'application/vnd.github+json'},
+      body:JSON.stringify(body)
+    });
+    if(!res.ok){const e=await res.json();throw new Error(e.message||res.statusText);}
+    ghSetStatus('ok',`pushed ${state.projects.length} projects to ${repo}/${path}`);
+  } catch(e) {
+    if(e.message.includes('decr')||e.message.includes('Operat')){_sessionPwd=null;ghSetStatus('error','wrong password — decryption failed');}
+    else ghSetStatus('error','push failed: '+e.message);
+  }
+}
+
+// ── Pull all projects ───────────────────────────────────────────────────────
+async function ghPull() {
+  const cfg=state.github;
+  if(!cfg?.encToken)return;
+  const pwd=await ghGetPassword();
+  if(!pwd)return;
+  ghSetStatus('syncing','pulling from github...');
+  try {
+    const token=await decryptToken(cfg.encToken,pwd);
+    const {repo,branch,path}=cfg;
+    const res=await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`,{
+      headers:{'Authorization':'token '+token,'Accept':'application/vnd.github+json'}
+    });
+    if(!res.ok){const e=await res.json();throw new Error(e.message||res.statusText);}
+    const data=await res.json();
+    const text=decodeURIComponent(escape(atob(data.content.split('\n').join(''))));
+    const remote=JSON.parse(text);
+    const projects=Array.isArray(remote.projects)?remote.projects:(remote.name?[remote]:null);
+    if(!projects)throw new Error('unrecognised remote format');
+    if(!confirm(`Replace all local projects with ${projects.length} project${projects.length>1?'s':''} from GitHub?`))return;
+    state.projects=projects;
+    state.activeProjectId=projects[0]?.id||null;
+    save();renderSidebar();renderProject();
+    ghSetStatus('ok',`pulled ${projects.length} projects from ${repo}/${path}`);
+  } catch(e) {
+    if(e.message.includes('decr')||e.message.includes('Operat')){_sessionPwd=null;ghSetStatus('error','wrong password — decryption failed');}
+    else ghSetStatus('error','pull failed: '+e.message);
+  }
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+async function ghGetFileSha(token,repo,branch,path) {
+  try {
+    const res=await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`,{
+      headers:{'Authorization':'token '+token,'Accept':'application/vnd.github+json'}
+    });
+    if(!res.ok)return null;
+    return (await res.json()).sha||null;
+  } catch(e){return null;}
+}
+
+async function ghGetPassword() {
+  if(_sessionPwd)return _sessionPwd;
+  return new Promise(resolve=>{
+    const status=document.getElementById('gh-status');
+    if(status)status.innerHTML=`
+      <div class="gh-status-box gh-status-info" style="gap:8px">
+        <div>enter your encryption password to continue</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="form-input" id="gh-inline-pwd" type="password" placeholder="your password" style="flex:1" autocomplete="off">
+          <button class="btn btn-primary" onclick="const v=document.getElementById('gh-inline-pwd').value;if(!v)return;_sessionPwd=v;document.getElementById('gh-status').innerHTML='';window._ghPwdResolve(v);" style="white-space:nowrap">confirm</button>
+        </div>
+      </div>`;
+    window._ghPwdResolve=resolve;
+  });
+}
+
+function ghSetStatus(type,msg) {
+  const el=document.getElementById('gh-status');
+  if(!el)return;
+  const cls=type==='ok'?'gh-status-ok':type==='error'?'gh-status-err':'gh-status-info';
+  const icon=type==='ok'?'✓':type==='error'?'✕':'⟳';
+  el.innerHTML=`<div class="gh-status-box ${cls}"><span>${icon} ${esc(msg)}</span></div>`;
+}
+
+function ghDisconnect() {
+  if(!confirm('Remove GitHub sync configuration?'))return;
+  delete state.github;
+  _sessionPwd=null;
+  save();
+  openGithubSyncModal();
+}
+
+// keyboard shortcut
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+</script>
+</body>
+</html>
