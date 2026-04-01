@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>WorkNote</title>
 <style>
   :root {
@@ -38,7 +38,7 @@
   body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
   /* TOPBAR */
-  .topbar { height: 48px; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 12px; flex-shrink: 0; z-index: 100; }
+  .topbar { height: 48px; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; padding-top: env(safe-area-inset-top); padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); gap: 12px; flex-shrink: 0; z-index: 100; min-height: calc(48px + env(safe-area-inset-top)); }
   .topbar-logo { font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 0.08em; }
   .topbar-logo span { color: var(--text2); font-weight: 400; }
   .topbar-spacer { flex: 1; }
@@ -50,11 +50,27 @@
   .topbar-btn:hover { border-color: var(--border2); color: var(--text); }
   .topbar-btn.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
 
+
+  /* SIDEBAR COLLAPSE */
+  .sidebar { width: var(--sidebar-w); background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; transition: width 0.2s ease; }
+  .sidebar.collapsed { width: 40px; }
+  .sidebar.collapsed .sidebar-list,
+  .sidebar.collapsed .sidebar-title,
+  .sidebar.collapsed .sidebar-add { display: none; }
+  .sidebar-collapse-btn { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 14px; padding: 4px 6px; border-radius: 4px; transition: color 0.15s; line-height: 1; flex-shrink: 0; }
+  .sidebar-collapse-btn:hover { color: var(--accent); background: var(--bg4); }
+  .sidebar.collapsed .sidebar-header { justify-content: center; padding: 12px 4px 8px; }
+  .sidebar.collapsed .sidebar-collapse-btn { font-size: 16px; }
+  @media (max-width: 600px) {
+    :root { --sidebar-w: 180px; }
+    .topbar-search { width: 140px; }
+  }
+
   /* LAYOUT */
   .layout { display: flex; flex: 1; overflow: hidden; }
 
   /* SIDEBAR */
-  .sidebar { width: var(--sidebar-w); background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+  /* sidebar base replaced below */
   .sidebar-header { padding: 12px 14px 8px; display: flex; align-items: center; justify-content: space-between; }
   .sidebar-title { font-size: 10px; letter-spacing: 0.12em; color: var(--text3); text-transform: uppercase; }
   .sidebar-add { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 4px; border-radius: 4px; transition: color 0.15s; }
@@ -325,10 +341,11 @@
 <div id="page-main" class="page active">
   <div class="page-main">
     <!-- SIDEBAR -->
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <span class="sidebar-title">projects</span>
         <button class="sidebar-add" onclick="openModal('project')" title="New project">+</button>
+        <button class="sidebar-collapse-btn" onclick="toggleSidebar()" id="sidebar-collapse-btn" title="Collapse sidebar">‹</button>
       </div>
       <div class="sidebar-list" id="sidebar-list"></div>
     </div>
@@ -1389,6 +1406,16 @@ function ghDisconnect() {
   _sessionPwd=null;
   save();
   openGithubSyncModal();
+}
+
+
+// ─── SIDEBAR COLLAPSE ─────────────────────────────────────────────────────────
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const btn = document.getElementById('sidebar-collapse-btn');
+  const collapsed = sb.classList.toggle('collapsed');
+  if(btn) btn.textContent = collapsed ? '›' : '‹';
+  if(btn) btn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
 }
 
 // keyboard shortcut
